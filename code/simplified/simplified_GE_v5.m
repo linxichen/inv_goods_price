@@ -71,7 +71,7 @@ noinvest_ind = ones(nk,1); % for each k, the index of tmr k if no invest
 invest_ind = ones(nk,1);
 for i_k = 1:nk
     [~,noinvest_ind(i_k)] = min(abs(k_grid-(1-ddelta)*k_grid(i_k)));
-    [~,invest_ind(i_k)] = min(abs(k_grid-(1.02)*k_grid(i_k)));
+    [~,invest_ind(i_k)] = min(abs(k_grid-(1.03)*k_grid(i_k)));
 end
 
 noinvest_ind_fine = ones(nfine,1); % for each k, the index of tmr k if no invest
@@ -92,9 +92,9 @@ neg_inv_fine = inv_mat_fine<=0;
 K_grid = linspace(k_grid(1),k_grid(nk),nK)'; % Aggregate capital grid
 
 % Variance grid
-qmin = .1;
-qmax = .9;
-psi = qmin; % cost of investment goods
+psi = 1; % cost of investment goods
+qmin = .1+psi;
+qmax = .9+psi;
 % a1 = (log(qmax)-log(qmin))/pi;
 % b1 = (log(qmax)+log(qmin))/2;
 q_grid = linspace(qmin,qmax,nq); % grid for current q
@@ -112,7 +112,7 @@ pphi_qssigmax = 0.00;
 pphi_KK = 0.99; 
 pphi_KC = 0.1; 
 pphi_Kz = 0.01;
-pphi_Kssigmax = 0.01;% Aggregate Law of motion for aggregate capital
+pphi_Kssigmax = -0.01;% Aggregate Law of motion for aggregate capital
 
 pphi_CK = 0.99; 
 pphi_CC = 0.1; 
@@ -146,8 +146,8 @@ for i_k = 1:nk
 end
 
 % Prepare for Simulation stuff
-T = 1000;
-burnin = 3;
+T = 200;
+burnin = 100;
 kss = mean(k_grid);
 Ksim = kss*ones(1,T);
 Csim = Ksim; % production and consumption of final goods
@@ -271,9 +271,9 @@ while ((diff > tol) && (outer_iter < maxiter))
         
         % According to policy functions, find the optimal q
         for i_q = 1:nq
-            tot_revenue_grid = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+            tot_revenue_grid = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.03+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
             % tot_revenue_grid(tot_revenue_grid<0) = 0;
-            demand_grid = dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+            demand_grid = dist_k(:,:,t).*((0.03+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
             revenue(i_q,t) = sum(tot_revenue_grid(:));
             demand(i_q,t) = sum(demand_grid(:));
         end
@@ -292,8 +292,7 @@ while ((diff > tol) && (outer_iter < maxiter))
         if (t<=T-1)
             for i_k = 1:nfine
                 for i_x = 1:nx
-                    ind_z =find(Z==zsim(t));
-                    i_s = sub2ind([nx nz 2],i_x,ind_z,ssigmaxsim(t));
+                    i_s = sub2ind([nx nz 2],i_x,zindsim(t),ssigmaxsim(t));
                     kplus = kopt_fine(i_k,i_s,i_K,i_qmax);
                     
                     % Assign mass to tomorrow's distribution
@@ -403,13 +402,11 @@ for i_x = 1:nx
     whichxind(i_x) = sub2ind([nz nx 2],1,i_x,ssigmaxsim(t));
 end
 for i_q = 1:nq
-    tot_revenue_grid(:,:,i_q) = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+    tot_revenue_grid(:,:,i_q) = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.03+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
     % tot_revenue_grid(tot_revenue_grid<0) = 0;
-    demand_grid = dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+    demand_grid = dist_k(:,:,t).*((0.03+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
     revenue_lowtfp(i_q) = sum(vec(tot_revenue_grid(:,:,i_q)));
     demand_lowtfp(i_q) = sum(demand_grid(:));
 end
 
-mesh(X,fine_grid,tot_revenue_grid(:,:,3))
 
-save main.mat
