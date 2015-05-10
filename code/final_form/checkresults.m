@@ -14,17 +14,14 @@ end
 %% Demand is downward sloping?
 t = T;
 [~,i_K] = min(abs((Ksim(t)-K_grid))); 
-revenue_check = zeros(1,nq);
-demand_check = revenue_check;
+profit_check = zeros(1,nq);
+demand_check = profit_check;
 whichxind = zeros(1,nx);
 for i_x = 1:nx
     whichxind(i_x) = sub2ind([nz nx 2],zindsim(t),i_x,ssigmaxsim(t));
 end
 for i_q = 1:nq
-    tot_revenue_grid(:,:,i_q) = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
-    % tot_revenue_grid(tot_revenue_grid<0) = 0;
-    demand_grid = dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
-    revenue_check(i_q) = sum(vec(tot_revenue_grid(:,:,i_q)));
+    profit_check(i_q) = sum(vec(tot_profit_grid(:,:,i_q)));
     demand_check(i_q) = sum(demand_grid(:));
 end
 

@@ -10,32 +10,20 @@
 
 %% Housekeeping
 clear; close all; clc;
-bbeta = 0.996; % if you don't know beta... good luck
-ttau = 0.1; % search cost
-aalpha = 0.3; % y = a*k^aalpha*l^v
-v = 0.6; % labor share
-aalpha0 = 2; % search elasticity
-ddelta = 0.02;
-pphi = 0.000000; % price of disinvestment relative to investment
-rrhox = 0.95; % persistence of idio TFP
-ppsi = 0.00; % quadratic cost of investment adjustment
-rrhoz = 0.95; % persistence of agg TFP
-ssigmaz = 0.01; % std of z innov
-ssigmax_low = 0.01; % low std of x innov
-ssigmax_high= 0.03; % high std of x innov
-Pssigmax = [0.9 0.1; 0.1 0.9]; % Transition prob of ssigmax
+deep_para;
 
 %% Accuracy control
 nk = 50; % number of grid points on capital stock
 nfine = 150; % number of grid points for policy functions and simulation
 nx = 7; % number of grid points on idiosyncractic prod.
-nz = 3; % number of grid points on aggregate productivity
+nz = 5; % number of grid points on aggregate productivity
 ns = nx*nz*2; % total dimension of exo state, (idio, agg, ssigmax)
-nK = 21; % agg capital state
+nK = 15; % agg capital state
 nq = 15; % number of price points inv producer can set
 m = 3; % support is m s.d. away from mean
 tol = 1e-3; % when to stop VFI and KS
-maxiter = 2000;
+outer_tol = 1e-3;
+maxiter = 50;
 damp = 0.3; % help with outer convergence
 
 %% Grids
@@ -67,17 +55,18 @@ end
 % The tail index has to be larger than 1/(1-aalpha) = 1.4286, this implies
 % q = 1.05.
 %=========================================================================%
-qmin = 1.001;
+qmin = 1.0001;
 qmax = 1.2;
 q_grid = linspace(qmin,qmax,nq); 
 % Capital grid
 [Kmax_lower,Kmin_upper,Kmin_lower]=calibration_ivg_v2(X,PX_low,q_grid);
-min_k = 40;
-max_k = Kmax_lower;
-k_grid = zeros(nk,1);
-for i_k = 1:nk
-    k_grid(i_k) = max_k*(1-ddelta)^(nk-i_k);
-end
+min_k = 30;
+max_k = 300;
+% k_grid = zeros(nk,1);
+% for i_k = 1:nk
+%     k_grid(i_k) = max_k*(1-ddelta)^(nk-i_k);
+% end
+k_grid = linspace(min_k,max_k,nk)';
 fine_grid = linspace(k_grid(1),k_grid(nk),nfine)';
 noinvest_ind = ones(nk,1); % for each k, the index of tmr k if no invest
 for i_k = 1:nk
@@ -110,20 +99,17 @@ pphi_qC = log(mean(q_grid)); % constant term
 pphi_qK = 0.0; % w.r.t agg K
 pphi_qz = 0.0; % w.r.t agg TFP
 pphi_qssigmax = 0.00; % w.r.t uncertainty
-pphi_q = [pphi_qC,pphi_qK,pphi_qz,pphi_qssigmax];
+pphi_q = [pphi_qC,pphi_qK,pphi_qssigmax,pphi_qz];
 
 pphi_KK = 0.99; 
 pphi_KC = log(mean(K_grid)); 
 pphi_Kz = 0.01;
 pphi_Kssigmax = 0.01;% Aggregate Law of motion for aggregate capital
-pphi_K = [pphi_KC,pphi_KK,pphi_Kz,pphi_Kssigmax];
+pphi_K = [pphi_KC,pphi_KK,pphi_Kssigmax,pphi_Kz];
 
-pphi_CK = 0.99; 
-pphi_CC = 0.1; 
-pphi_Cz = 0.01;
-pphi_Cssigmax = 0.01;% Aggregate Law of motion for consumption
-pphi_C = [pphi_CC,pphi_CK,pphi_Cz,pphi_Cssigmax];
-load aggrules.mat;
+if (exist('aggrules.mat','file') == 2)
+    load aggrules.mat;
+end
 
 %% Initialize value functions
 if (exist('valuefunctions.mat','file') == 2)
@@ -209,7 +195,7 @@ tic
 outer_diff = 10;
 outer_iter = 0;
 
-while ((outer_diff > tol) && (outer_iter < maxiter))
+while ((outer_diff > outer_tol) && (outer_iter < maxiter))
     %============ VFI Begins==============================================%
     % Inner loop
     err = 10;
@@ -257,7 +243,7 @@ while ((outer_diff > tol) && (outer_iter < maxiter))
         W_old = W_new;
         U_old = U_new;
         iter = iter + 1;
-        if mod(iter,1) == 0
+        if mod(iter,500) == 0
             disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,outer_diff,iter,err);
             disp(disp_text);
         end
@@ -446,7 +432,7 @@ toc
 figure
 mesh(X,fine_grid,tot_profit_grid(:,:,1))
 
-plot(q_grid,revenue_lowtfp,'b',q_grid,revenue_hightfp,'r')
+% plot(q_grid,revenue_lowtfp,'b',q_grid,revenue_hightfp,'r')
 save main.mat
 
-checkresults;
+% checkresults;

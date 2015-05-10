@@ -26,13 +26,13 @@ ssigmax_high= 0.06;
 Pssigmax = [0.9 0.1; 0.1 0.9];
 
 %% Accuracy control
-nk = 30; % number of grid points on capital stock
+nk = 150; % number of grid points on capital stock
 nfine = 100;
-nx = 5; % number of grid points on idiosyncractic prod.
-nz = 5; % number of grid points on aggregate productivity
+nx = 9; % number of grid points on idiosyncractic prod.
+nz = 9; % number of grid points on aggregate productivity
 ns = nx*nz*2;
 nK = 7;
-nq =20;
+nq =50;
 m = 3; % support is m s.d. away from mean
 tol = 1e-2;
 maxiter = 2000;
@@ -61,7 +61,7 @@ for i = 1:ns
 end
 
 % Capital stuff
-min_k = 10;
+min_k = 5;
 k_grid = min_k*ones(nk,1); % calibrated from ig_calibration_10_4
 for i_k = 1:nk-1
     k_grid(i_k+1) = (1.02)*k_grid(i_k);
@@ -92,8 +92,8 @@ neg_inv_fine = inv_mat_fine<=0;
 K_grid = linspace(k_grid(1),k_grid(nk),nK)'; % Aggregate capital grid
 
 % Variance grid
-qmin = .1;
-qmax = .9;
+qmin = .4;
+qmax = 3;
 psi = qmin; % cost of investment goods
 % a1 = (log(qmax)-log(qmin))/pi;
 % b1 = (log(qmax)+log(qmin))/2;
@@ -182,10 +182,10 @@ end
 
 tic
 %% Main Body of KS iter
-diff = 10;
+outer_diff = 10;
 outer_iter = 0;
 
-while ((diff > tol) && (outer_iter < maxiter))
+while ((outer_diff > tol) && (outer_iter < maxiter))
     % Inner loop
     err = 10;
     iter = 0;
@@ -220,7 +220,7 @@ while ((diff > tol) && (outer_iter < maxiter))
         U_old = U_new;
         iter = iter + 1;
         if mod(iter,200) == 0
-            disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,diff,iter,err);
+            disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,outer_diff,iter,err);
             disp(disp_text);
         end
     end
@@ -242,6 +242,7 @@ while ((diff > tol) && (outer_iter < maxiter))
             end
         end
     end
+    
     active_fine = W_new_fine > repmat(U_new_fine,1,1,1,nq);
     koptind_fine = repmat(noinvest_ind_fine,1,ns,nK,nq).*(1-active_fine) + active_fine.*repmat(invest_ind_fine,1,ns,nK,nq);
     kopt_fine = fine_grid(koptind_fine);
@@ -346,7 +347,7 @@ while ((diff > tol) && (outer_iter < maxiter))
     pphi_Cssigmax_new = damp*bbeta_C(3)+(1-damp)*pphi_Cssigmax; pphi_Cz_new = damp*bbeta_C(4)+(1-damp)*pphi_Cz;
     
     % Update mmu_old as well
-   diff = norm([pphi_KC,    pphi_KK,    pphi_Kssigmax,    pphi_Kz,    pphi_qC,    pphi_qK,    pphi_qssigmax,    pphi_qz,    pphi_CC,    pphi_CK,    pphi_Cssigmax,    pphi_Cz]-...
+   outer_diff = norm([pphi_KC,    pphi_KK,    pphi_Kssigmax,    pphi_Kz,    pphi_qC,    pphi_qK,    pphi_qssigmax,    pphi_qz,    pphi_CC,    pphi_CK,    pphi_Cssigmax,    pphi_Cz]-...
                 [pphi_KC_new,pphi_KK_new,pphi_Kssigmax_new,pphi_Kz_new,pphi_qC_new,pphi_qK_new,pphi_qssigmax_new,pphi_qz_new,pphi_CC_new,pphi_CK_new,pphi_Cssigmax_new,pphi_Cz_new],Inf);
     
     % Update mmu_old as well
@@ -380,7 +381,7 @@ while ((diff > tol) && (outer_iter < maxiter))
     disp(disp_text);
     disp_text = sprintf('log(C) = %d + %d * log(K) + %d * log(ssigmax)+%d * log(z)',pphi_CC,pphi_CK,pphi_Cssigmax,pphi_Cz_new);
     disp(disp_text);
-    disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,diff,iter,err);
+    disp_text = sprintf('KS Iter = %d, KS err = %d, Current VFI Iter = %d, err = %d',outer_iter,outer_diff,iter,err);
     disp(disp_text);
     disp('===============================');
     
@@ -409,7 +410,30 @@ for i_q = 1:nq
     revenue_lowtfp(i_q) = sum(vec(tot_revenue_grid(:,:,i_q)));
     demand_lowtfp(i_q) = sum(demand_grid(:));
 end
+figure
+mesh(X,fine_grid,tot_revenue_grid(:,:,1))
 
-mesh(X,fine_grid,tot_revenue_grid(:,:,3))
+t = T;
+[~,i_K] = min(abs((Ksim(t)-K_grid))); 
+revenue_hightfp = zeros(1,nq);
+demand_hightfp = revenue_hightfp;
+whichxind = zeros(1,nx);
+for i_x = 1:nx
+    whichxind(i_x) = sub2ind([nz nx 2],nz,i_x,ssigmaxsim(t));
+end
+for i_q = 1:nq
+    tot_revenue_grid(:,:,i_q) = (q_grid(i_q)-psi)*dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+    % tot_revenue_grid(tot_revenue_grid<0) = 0;
+    demand_grid = dist_k(:,:,t).*((0.02+ddelta)*repmat(fine_grid,1,nx)).*(active_fine(:,whichxind,i_K,i_q));
+    revenue_hightfp(i_q) = sum(vec(tot_revenue_grid(:,:,i_q)));
+    demand_hightfp(i_q) = sum(demand_grid(:));
+end
 
+
+figure
+mesh(X,fine_grid,tot_revenue_grid(:,:,1))
+
+plot(q_grid,revenue_lowtfp,'b',q_grid,revenue_hightfp,'r')
 save main.mat
+
+checkresults;
