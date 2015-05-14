@@ -95,16 +95,16 @@ K_grid = linspace(k_grid(1),k_grid(nk),nK)'; % Aggregate capital grid
 
 %% Aggregate rules and its parameters
 % Rule of q as function of aggregate states
-pphi_qC = log(mean(q_grid)); % constant term
-pphi_qK = 0.0; % w.r.t agg K
-pphi_qz = 0.0; % w.r.t agg TFP
-pphi_qssigmax = 0.00; % w.r.t uncertainty
+pphi_qC = -1.562941e-01; % constant term
+pphi_qK = 4.778493e-02; % w.r.t agg K
+pphi_qz = 7.160176e-01; % w.r.t agg TFP
+pphi_qssigmax = -7.384806e-04; % w.r.t uncertainty
 pphi_q = [pphi_qC,pphi_qK,pphi_qssigmax,pphi_qz];
 
-pphi_KK = 0.99; 
-pphi_KC = log(mean(K_grid)); 
-pphi_Kz = 0.01;
-pphi_Kssigmax = 0.01;% Aggregate Law of motion for aggregate capital
+pphi_KK = 9.870171e-01; 
+pphi_KC = 5.820574e-02; 
+pphi_Kz = 8.744144e-02;
+pphi_Kssigmax = -1.802222e-03;% Aggregate Law of motion for aggregate capital
 pphi_K = [pphi_KC,pphi_KK,pphi_Kssigmax,pphi_Kz];
 
 if (exist('aggrules.mat','file') == 2)
